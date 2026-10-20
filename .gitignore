@@ -1,0 +1,37 @@
+# Rust / Cargo build output
+/target/
+
+# Generated CMake, Make, and example build output
+/build/
+/dist/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/compile_commands.json
+/Testing/
+
+# Native compiler and linker artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exp
+*.ilk
+*.pdb
+*.so
+*.dylib
+*.exe
+
+# Visual Studio and other IDE state
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.user
+*.suo
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

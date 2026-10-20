@@ -1,0 +1,32 @@
+[package]
+name = "tokenizers-c"
+version = "0.23.2"
+edition = "2021"
+authors = ["tokenizers-c contributors"]
+description = "Embeddable C FFI static & shared library for HuggingFace Tokenizers"
+license = "Apache-2.0"
+repository = "https://github.com/huggingface/tokenizers"
+readme = "README.md"
+
+[lib]
+name = "tokenizers"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+# `fancy-regex` is pure Rust and compiles cleanly on Windows (MSVC & MinGW),
+# Linux, and macOS without requiring a system Oniguruma C library.
+default = ["fancy-regex", "http"]
+fancy-regex = ["tokenizers/fancy-regex"]
+onig = ["tokenizers/onig"]
+esaxx_fast = ["tokenizers/esaxx_fast"]
+http = ["tokenizers/http"]
+
+[dependencies]
+tokenizers = { version = "0.23", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = false

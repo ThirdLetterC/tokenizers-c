@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "<|endoftext|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "<|pad|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": {
+    "type": "Lowercase"
+  },
+  "pre_tokenizer": {
+    "type": "Whitespace"
+  },
+  "post_processor": null,
+  "decoder": null,
+  "model": {
+    "type": "BPE",
+    "dropout": null,
+    "unk_token": "<|endoftext|>",
+    "continuing_subword_prefix": null,
+    "end_of_word_suffix": null,
+    "fuse_unk": false,
+    "byte_fallback": false,
+    "vocab": {
+      "<|endoftext|>": 0,
+      "<|pad|>": 1,
+      "h": 2,
+      "u": 3,
+      "g": 4,
+      "i": 5,
+      "n": 6,
+      "f": 7,
+      "a": 8,
+      "c": 9,
+      "e": 10,
+      "hu": 11,
+      "gg": 12,
+      "in": 13,
+      "hugg": 14,
+      "ing": 15,
+      "hugging": 16,
+      "fa": 17,
+      "ce": 18,
+      "face": 19,
+      "huggingface": 20
+    },
+    "merges": [
+      "h u",
+      "g g",
+      "i n",
+      "hu gg",
+      "in g",
+      "hugg ing",
+      "f a",
+      "c e",
+      "fa ce",
+      "hugging face"
+    ]
+  }
+}

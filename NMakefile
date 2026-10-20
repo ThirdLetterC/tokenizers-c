@@ -1,0 +1,46 @@
+# NMakefile — Visual Studio NMAKE build file for tokenizers-c (Rust Core Wrapper)
+#
+# Usage (from Visual Studio Developer Command Prompt):
+#   nmake /f NMakefile            Build dist\include\tokenizers.h + dist\lib\libtokenizers.a & tokenizers.lib via Cargo
+#   nmake /f NMakefile test       Compile and run the C unit test suite
+#   nmake /f NMakefile examples   Compile C example binaries
+#   nmake /f NMakefile clean      Clean build, dist, and Cargo target directories
+
+CC       = cl.exe
+CARGO    = cargo.exe
+CFLAGS   = /nologo /O2 /W4 /Idist\include /D_CRT_SECURE_NO_WARNINGS
+SYS_LIBS = ws2_32.lib userenv.lib advapi32.lib bcrypt.lib ntdll.lib crypt32.lib secur32.lib
+
+DIST_INC = dist\include
+DIST_LIB = dist\lib
+BUILD    = build
+
+all: dirs $(DIST_INC)\tokenizers.h $(DIST_LIB)\tokenizers.lib
+
+dirs:
+	@if not exist $(DIST_INC) mkdir $(DIST_INC)
+	@if not exist $(DIST_LIB) mkdir $(DIST_LIB)
+	@if not exist $(BUILD) mkdir $(BUILD)
+
+$(DIST_INC)\tokenizers.h: include\tokenizers.h
+	copy /Y include\tokenizers.h $(DIST_INC)\tokenizers.h >nul
+
+$(DIST_LIB)\tokenizers.lib: Cargo.toml src\lib.rs include\tokenizers.h
+	$(CARGO) build --release
+	copy /Y target\release\tokenizers.lib $(DIST_LIB)\tokenizers.lib >nul
+	copy /Y target\release\tokenizers.lib $(DIST_LIB)\libtokenizers.a >nul
+	@echo ==^> Built header:  $(DIST_INC)\tokenizers.h
+	@echo ==^> Built archive: $(DIST_LIB)\libtokenizers.a + $(DIST_LIB)\tokenizers.lib
+
+examples: all
+	$(CC) $(CFLAGS) examples\basic_usage.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\basic_usage.exe
+	$(CC) $(CFLAGS) examples\batch_and_pair.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\batch_and_pair.exe
+
+test: all
+	$(CC) $(CFLAGS) /WX tests\test_tokenizers.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\test_tokenizers.exe
+	$(BUILD)\test_tokenizers.exe
+
+clean:
+	@if exist $(BUILD) rmdir /s /q $(BUILD)
+	@if exist dist rmdir /s /q dist
+	$(CARGO) clean
