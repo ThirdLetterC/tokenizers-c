@@ -197,17 +197,20 @@ static void test_bpe_merges_and_streaming(void) {
     TkDecodeStream *stream = tk_decode_stream_new(true);
     ASSERT_TRUE(stream != NULL);
 
-    char *accum = (char *)calloc(128, 1);
+    char accum[128] = {0};
+    size_t accum_len = 0;
     for (size_t i = 0; i < len; i++) {
         char *chunk = NULL;
         ASSERT_EQ(tk_decode_stream_step(stream, tk, ids[i], &chunk), TK_OK);
         if (chunk) {
-            strcat(accum, chunk);
+            size_t chunk_len = strlen(chunk);
+            ASSERT_TRUE(chunk_len < sizeof(accum) - accum_len);
+            memcpy(accum + accum_len, chunk, chunk_len + 1);
+            accum_len += chunk_len;
             tk_string_free(chunk);
         }
     }
     ASSERT_STR_EQ(accum, "huggingface hugging face");
-    free(accum);
 
     tk_decode_stream_free(stream);
     tk_encoding_free(enc);

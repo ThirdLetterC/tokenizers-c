@@ -296,6 +296,7 @@ TK_API void tk_free(TkTokenizer *tokenizer);
 
 TK_API TkStatus tk_enable_padding(TkTokenizer *tokenizer, const TkPaddingParams *params);
 TK_API void tk_disable_padding(TkTokenizer *tokenizer);
+/** `out_params->pad_token` is borrowed until padding changes or `tokenizer` is freed. */
 TK_API bool tk_get_padding(const TkTokenizer *tokenizer, TkPaddingParams *out_params);
 
 TK_API TkStatus tk_enable_truncation(TkTokenizer *tokenizer, const TkTruncationParams *params);
@@ -434,6 +435,10 @@ TK_API size_t tk_encoding_len(const TkEncoding *encoding);
 TK_API bool tk_encoding_is_empty(const TkEncoding *encoding);
 TK_API size_t tk_encoding_n_sequences(const TkEncoding *encoding);
 
+/**
+ * Returned arrays and token strings are borrowed until `encoding` is freed or
+ * mutated (for example by padding or truncation).
+ */
 TK_API const uint32_t *tk_encoding_get_ids(const TkEncoding *encoding, size_t *out_len);
 TK_API const uint32_t *tk_encoding_get_type_ids(const TkEncoding *encoding, size_t *out_len);
 TK_API const uint32_t *tk_encoding_get_attention_mask(const TkEncoding *encoding, size_t *out_len);
@@ -559,6 +564,11 @@ TK_API TkStatus tk_decode_stream_step(
     char **out_chunk
 );
 
+/**
+ * Reset decoder context before reusing a stream for another response or tokenizer.
+ * The stream retains only the context needed to decode subsequent chunks.
+ */
+TK_API void tk_decode_stream_reset(TkDecodeStream *stream);
 TK_API void tk_decode_stream_free(TkDecodeStream *stream);
 
 #ifdef __cplusplus

@@ -5,22 +5,22 @@
 
 use std::cell::RefCell;
 use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_int};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::Path;
 use std::ptr;
 use std::slice;
 
 use tokenizers::tokenizer::{
-    AddedToken, EncodeInput, Encoding, PaddingDirection, PaddingParams, PaddingStrategy,
-    Tokenizer, TruncationDirection, TruncationParams, TruncationStrategy,
+    step_decode_stream, AddedToken, EncodeInput, Encoding, PaddingDirection, PaddingParams,
+    PaddingStrategy, Tokenizer, TruncationDirection, TruncationParams, TruncationStrategy,
 };
 
 #[cfg(feature = "http")]
 use tokenizers::FromPretrainedParameters;
 
 /* ========================================================================== *
- * C ABI Types & Enums (matching include/tokenizers.h)
+ * C ABI Types (matching include/tokenizers.h)
  * ========================================================================== */
 
 #[repr(C)]
@@ -41,42 +41,20 @@ pub enum TkStatus {
     TkErrInternal = 255,
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TkDirection {
-    TkDirectionRight = 0,
-    TkDirectionLeft = 1,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TkPaddingStrategyTag {
-    TkPaddingBatchLongest = 0,
-    TkPaddingFixed = 1,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TkTruncationStrategy {
-    TkTruncationLongestFirst = 0,
-    TkTruncationOnlyFirst = 1,
-    TkTruncationOnlySecond = 2,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TkOffsetType {
-    TkOffsetByte = 0,
-    TkOffsetChar = 1,
-    TkOffsetNone = 2,
+#[derive(Copy, Clone)]
+enum OffsetMode {
+    Byte,
+    Char,
+    None,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct TkPaddingParams {
-    pub strategy: TkPaddingStrategyTag,
+    // Keep caller-controlled C enum discriminants as integers until validated.
+    pub strategy: c_int,
     pub fixed_length: usize,
-    pub direction: TkDirection,
+    pub direction: c_int,
     pub pad_to_multiple_of: usize,
     pub pad_id: u32,
     pub pad_type_id: u32,
@@ -87,9 +65,9 @@ pub struct TkPaddingParams {
 #[derive(Debug, Copy, Clone)]
 pub struct TkTruncationParams {
     pub max_length: usize,
-    pub strategy: TkTruncationStrategy,
+    pub strategy: c_int,
     pub stride: usize,
-    pub direction: TkDirection,
+    pub direction: c_int,
 }
 
 #[repr(C)]
@@ -296,9 +274,9 @@ pub extern "C" fn tk_clear_error() {
 #[no_mangle]
 pub extern "C" fn tk_padding_params_default() -> TkPaddingParams {
     TkPaddingParams {
-        strategy: TkPaddingStrategyTag::TkPaddingBatchLongest,
+        strategy: 0,
         fixed_length: 0,
-        direction: TkDirection::TkDirectionRight,
+        direction: 0,
         pad_to_multiple_of: 0,
         pad_id: 0,
         pad_type_id: 0,
@@ -310,9 +288,9 @@ pub extern "C" fn tk_padding_params_default() -> TkPaddingParams {
 pub extern "C" fn tk_truncation_params_default(max_length: usize) -> TkTruncationParams {
     TkTruncationParams {
         max_length,
-        strategy: TkTruncationStrategy::TkTruncationLongestFirst,
+        strategy: 0,
         stride: 0,
-        direction: TkDirection::TkDirectionRight,
+        direction: 0,
     }
 }
 
@@ -586,12 +564,20 @@ pub unsafe extern "C" fn tk_enable_padding(
         };
 
         let strategy = match p.strategy {
-            TkPaddingStrategyTag::TkPaddingBatchLongest => PaddingStrategy::BatchLongest,
-            TkPaddingStrategyTag::TkPaddingFixed => PaddingStrategy::Fixed(p.fixed_length),
+            0 => PaddingStrategy::BatchLongest,
+            1 => PaddingStrategy::Fixed(p.fixed_length),
+            value => return set_error(
+                TkStatus::TkErrPadding,
+                format!("Invalid padding strategy value: {}", value),
+            ),
         };
         let direction = match p.direction {
-            TkDirection::TkDirectionRight => PaddingDirection::Right,
-            TkDirection::TkDirectionLeft => PaddingDirection::Left,
+            0 => PaddingDirection::Right,
+            1 => PaddingDirection::Left,
+            value => return set_error(
+                TkStatus::TkErrPadding,
+                format!("Invalid padding direction value: {}", value),
+            ),
         };
         let pad_to_multiple_of = if p.pad_to_multiple_of > 0 {
             Some(p.pad_to_multiple_of)
@@ -635,14 +621,12 @@ pub unsafe extern "C" fn tk_get_padding(
             Some(p) => {
                 if !out_params.is_null() {
                     let (strategy, fixed_length) = match p.strategy {
-                        PaddingStrategy::BatchLongest => {
-                            (TkPaddingStrategyTag::TkPaddingBatchLongest, 0)
-                        }
-                        PaddingStrategy::Fixed(n) => (TkPaddingStrategyTag::TkPaddingFixed, n),
+                        PaddingStrategy::BatchLongest => (0, 0),
+                        PaddingStrategy::Fixed(n) => (1, n),
                     };
                     let direction = match p.direction {
-                        PaddingDirection::Right => TkDirection::TkDirectionRight,
-                        PaddingDirection::Left => TkDirection::TkDirectionLeft,
+                        PaddingDirection::Right => 0,
+                        PaddingDirection::Left => 1,
                     };
                     *out_params = TkPaddingParams {
                         strategy,
@@ -687,13 +671,21 @@ pub unsafe extern "C" fn tk_enable_truncation(
         }
 
         let strategy = match p.strategy {
-            TkTruncationStrategy::TkTruncationLongestFirst => TruncationStrategy::LongestFirst,
-            TkTruncationStrategy::TkTruncationOnlyFirst => TruncationStrategy::OnlyFirst,
-            TkTruncationStrategy::TkTruncationOnlySecond => TruncationStrategy::OnlySecond,
+            0 => TruncationStrategy::LongestFirst,
+            1 => TruncationStrategy::OnlyFirst,
+            2 => TruncationStrategy::OnlySecond,
+            value => return set_error(
+                TkStatus::TkErrTruncation,
+                format!("Invalid truncation strategy value: {}", value),
+            ),
         };
         let direction = match p.direction {
-            TkDirection::TkDirectionRight => TruncationDirection::Right,
-            TkDirection::TkDirectionLeft => TruncationDirection::Left,
+            0 => TruncationDirection::Right,
+            1 => TruncationDirection::Left,
+            value => return set_error(
+                TkStatus::TkErrTruncation,
+                format!("Invalid truncation direction value: {}", value),
+            ),
         };
 
         match tk.inner.with_truncation(Some(TruncationParams {
@@ -734,18 +726,18 @@ pub unsafe extern "C" fn tk_get_truncation(
                 if !out_params.is_null() {
                     let strategy = match t.strategy {
                         TruncationStrategy::LongestFirst => {
-                            TkTruncationStrategy::TkTruncationLongestFirst
+                            0
                         }
                         TruncationStrategy::OnlyFirst => {
-                            TkTruncationStrategy::TkTruncationOnlyFirst
+                            1
                         }
                         TruncationStrategy::OnlySecond => {
-                            TkTruncationStrategy::TkTruncationOnlySecond
+                            2
                         }
                     };
                     let direction = match t.direction {
-                        TruncationDirection::Right => TkDirection::TkDirectionRight,
-                        TruncationDirection::Left => TkDirection::TkDirectionLeft,
+                        TruncationDirection::Right => 0,
+                        TruncationDirection::Left => 1,
                     };
                     *out_params = TkTruncationParams {
                         max_length: t.max_length,
@@ -941,12 +933,12 @@ fn run_encode<'s, E: Into<EncodeInput<'s>>>(
     tk: &Tokenizer,
     input: E,
     add_special_tokens: bool,
-    offset_type: TkOffsetType,
+    offset_type: OffsetMode,
 ) -> *mut TkEncoding {
     let res = match offset_type {
-        TkOffsetType::TkOffsetByte => tk.encode(input, add_special_tokens),
-        TkOffsetType::TkOffsetChar => tk.encode_char_offsets(input, add_special_tokens),
-        TkOffsetType::TkOffsetNone => tk.encode_fast(input, add_special_tokens),
+        OffsetMode::Byte => tk.encode(input, add_special_tokens),
+        OffsetMode::Char => tk.encode_char_offsets(input, add_special_tokens),
+        OffsetMode::None => tk.encode_fast(input, add_special_tokens),
     };
     match res {
         Ok(enc) => Box::into_raw(Box::new(TkEncoding::from_encoding(enc))),
@@ -973,7 +965,7 @@ pub unsafe extern "C" fn tk_encode(
             Ok(v) => v,
             Err(_) => return ptr::null_mut(),
         };
-        run_encode(&(*tokenizer).inner, s, add_special_tokens, TkOffsetType::TkOffsetByte)
+        run_encode(&(*tokenizer).inner, s, add_special_tokens, OffsetMode::Byte)
     })
 }
 
@@ -983,7 +975,7 @@ pub unsafe extern "C" fn tk_encode_ex(
     text: *const c_char,
     text_len: usize,
     add_special_tokens: bool,
-    offset_type: TkOffsetType,
+    offset_type: c_int,
 ) -> *mut TkEncoding {
     with_ffi_guard(ptr::null_mut(), || {
         clear_error_internal();
@@ -1005,7 +997,16 @@ pub unsafe extern "C" fn tk_encode_ex(
                 return ptr::null_mut();
             }
         };
-        run_encode(&(*tokenizer).inner, s, add_special_tokens, offset_type)
+        let mode = match offset_type {
+            0 => OffsetMode::Byte,
+            1 => OffsetMode::Char,
+            2 => OffsetMode::None,
+            value => {
+                set_error(TkStatus::TkErrOutOfRange, format!("Invalid offset type value: {}", value));
+                return ptr::null_mut();
+            }
+        };
+        run_encode(&(*tokenizer).inner, s, add_special_tokens, mode)
     })
 }
 
@@ -1034,7 +1035,7 @@ pub unsafe extern "C" fn tk_encode_pair(
             &(*tokenizer).inner,
             (sa, sb),
             add_special_tokens,
-            TkOffsetType::TkOffsetByte,
+            OffsetMode::Byte,
         )
     })
 }
@@ -1047,7 +1048,7 @@ pub unsafe extern "C" fn tk_encode_pair_ex(
     text_b: *const c_char,
     text_b_len: usize,
     add_special_tokens: bool,
-    offset_type: TkOffsetType,
+    offset_type: c_int,
 ) -> *mut TkEncoding {
     with_ffi_guard(ptr::null_mut(), || {
         clear_error_internal();
@@ -1080,7 +1081,16 @@ pub unsafe extern "C" fn tk_encode_pair_ex(
                 return ptr::null_mut();
             }
         };
-        run_encode(&(*tokenizer).inner, (sa, sb), add_special_tokens, offset_type)
+        let mode = match offset_type {
+            0 => OffsetMode::Byte,
+            1 => OffsetMode::Char,
+            2 => OffsetMode::None,
+            value => {
+                set_error(TkStatus::TkErrOutOfRange, format!("Invalid offset type value: {}", value));
+                return ptr::null_mut();
+            }
+        };
+        run_encode(&(*tokenizer).inner, (sa, sb), add_special_tokens, mode)
     })
 }
 
@@ -1114,7 +1124,7 @@ pub unsafe extern "C" fn tk_encode_pretokenized(
             &(*tokenizer).inner,
             &slice_words[..],
             add_special_tokens,
-            TkOffsetType::TkOffsetByte,
+            OffsetMode::Byte,
         )
     })
 }
@@ -1694,7 +1704,7 @@ pub unsafe extern "C" fn tk_encoding_truncate(
     encoding: *mut TkEncoding,
     max_len: usize,
     stride: usize,
-    direction: TkDirection,
+    direction: c_int,
 ) -> TkStatus {
     with_ffi_guard(TkStatus::TkErrPanic, || {
         clear_error_internal();
@@ -1708,8 +1718,12 @@ pub unsafe extern "C" fn tk_encoding_truncate(
             );
         }
         let dir = match direction {
-            TkDirection::TkDirectionRight => TruncationDirection::Right,
-            TkDirection::TkDirectionLeft => TruncationDirection::Left,
+            0 => TruncationDirection::Right,
+            1 => TruncationDirection::Left,
+            value => return set_error(
+                TkStatus::TkErrOutOfRange,
+                format!("Invalid truncation direction value: {}", value),
+            ),
         };
         let enc = &mut *encoding;
         enc.inner.truncate(max_len, stride, dir);
@@ -1725,7 +1739,7 @@ pub unsafe extern "C" fn tk_encoding_pad(
     pad_id: u32,
     pad_type_id: u32,
     pad_token: *const c_char,
-    direction: TkDirection,
+    direction: c_int,
 ) -> TkStatus {
     with_ffi_guard(TkStatus::TkErrPanic, || {
         clear_error_internal();
@@ -1741,8 +1755,12 @@ pub unsafe extern "C" fn tk_encoding_pad(
             }
         };
         let dir = match direction {
-            TkDirection::TkDirectionRight => PaddingDirection::Right,
-            TkDirection::TkDirectionLeft => PaddingDirection::Left,
+            0 => PaddingDirection::Right,
+            1 => PaddingDirection::Left,
+            value => return set_error(
+                TkStatus::TkErrPadding,
+                format!("Invalid padding direction value: {}", value),
+            ),
         };
         let enc = &mut *encoding;
         enc.inner.pad(target_length, pad_id, pad_type_id, ptok, dir);
@@ -1938,31 +1956,38 @@ pub unsafe extern "C" fn tk_decode_stream_step(
             );
         }
 
-        st.ids.push(token_id);
-        let decoded = match tk.decode(&st.ids, st.skip_special_tokens) {
-            Ok(s) => s,
+        match step_decode_stream(
+            tk,
+            vec![token_id],
+            st.skip_special_tokens,
+            &mut st.ids,
+            &mut st.prefix,
+            &mut st.prefix_index,
+        ) {
+            Ok(Some(chunk)) => {
+                *out_chunk = string_to_c_heap(chunk);
+                TkStatus::TkOk
+            }
+            Ok(None) => TkStatus::TkOk,
             Err(e) => {
-                st.ids.pop();
-                return set_error(
+                set_error(
                     TkStatus::TkErrModel,
                     format!("DecodeStream decode failed: {}", e),
-                );
+                )
             }
-        };
-
-        if decoded.ends_with('\u{FFFD}') {
-            // Incomplete multi-byte UTF-8 sequence; wait for subsequent tokens.
-            return TkStatus::TkOk;
         }
-
-        if decoded.len() > st.prefix.len() && decoded.starts_with(&st.prefix) {
-            let chunk = decoded[st.prefix.len()..].to_string();
-            st.prefix = decoded;
-            st.prefix_index = st.ids.len();
-            *out_chunk = string_to_c_heap(chunk);
-        }
-        TkStatus::TkOk
     })
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn tk_decode_stream_reset(stream: *mut TkDecodeStream) {
+    if stream.is_null() {
+        return;
+    }
+    let st = &mut *stream;
+    st.ids = Vec::new();
+    st.prefix = String::new();
+    st.prefix_index = 0;
 }
 
 #[no_mangle]
