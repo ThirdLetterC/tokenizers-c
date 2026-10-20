@@ -1,4 +1,6 @@
-# `tokenizers-c` — Embeddable C FFI Wrapper for HuggingFace Tokenizers (Rust Core)
+# tokenizers-c
+
+Embeddable C FFI Wrapper for HuggingFace Tokenizers (Rust Core).
 
 `tokenizers-c` is a thin, panic-safe Rust FFI `staticlib` wrapper around the official [HuggingFace `tokenizers` Rust crate (`v0.23`)](https://github.com/huggingface/tokenizers) that compiles into an embeddable C header (`dist/include/tokenizers.h`) and static library archive (`dist/lib/libtokenizers.a` / `dist/lib/tokenizers.lib`) for **Windows**, **Linux**, and **macOS**.
 
@@ -156,32 +158,3 @@ Because `libtokenizers.a` / `tokenizers.lib` is a Rust `staticlib`, link the sta
   ```bash
   PKG_CONFIG_PATH=dist/lib/pkgconfig cc -O2 my_app.c $(pkg-config --cflags --libs tokenizers) -o my_app
   ```
-
-## Project Layout
-
-```text
-tokenizers-c/
-├── Cargo.toml                         # Rust staticlib/cdylib crate manifest (wraps `tokenizers = "0.23"`)
-├── CMakeLists.txt                     # CMake build & FetchContent integration
-├── Makefile                           # Make build system (Linux, macOS, MSYS2/MinGW)
-├── NMakefile                          # Visual Studio nmake build file (Windows)
-├── build.bat                          # Windows Command Prompt / VS Developer Prompt build script
-├── build.ps1                          # Windows PowerShell build script
-├── build.rs                           # Cargo build script
-├── cbindgen.toml                      # cbindgen configuration for C header generation
-├── include/
-│   └── tokenizers.h                   # Embeddable C99/C11/C++ header file
-├── dist/
-│   └── include/
-│       └── tokenizers.h               # Pre-copied embeddable header file
-├── src/
-│   └── lib.rs                         # Rust FFI bindings around huggingface/tokenizers
-├── examples/
-│   ├── basic_usage.c                  # Single-sequence encode/decode/streaming demo
-│   ├── batch_and_pair.c               # Batch padding, truncation, and pair encoding demo
-│   ├── streaming_decode.c              # Standalone token-by-token streaming decode demo
-│   ├── sample_bert_tokenizer.json     # Sample WordPiece tokenizer.json
-│   └── sample_bpe_tokenizer.json      # Sample BPE tokenizer.json
-└── tests/
-    └── test_tokenizers.c              # C unit test suite
-```
