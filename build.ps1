@@ -73,9 +73,11 @@ if ($Examples) {
     if (Get-Command cl -ErrorAction SilentlyContinue) {
         & cl /nologo /O2 /W4 /Idist\include examples\basic_usage.c dist\lib\tokenizers.lib @WinSysLibs /Fe:build\basic_usage.exe
         & cl /nologo /O2 /W4 /Idist\include examples\batch_and_pair.c dist\lib\tokenizers.lib @WinSysLibs /Fe:build\batch_and_pair.exe
+        & cl /nologo /O2 /W4 /Idist\include examples\streaming_decode.c dist\lib\tokenizers.lib @WinSysLibs /Fe:build\streaming_decode.exe
     } else {
         & gcc -O3 -Wall -Wextra -std=c11 -Idist\include examples\basic_usage.c dist\lib\libtokenizers.a @GccSysLibs -o build\basic_usage.exe
         & gcc -O3 -Wall -Wextra -std=c11 -Idist\include examples\batch_and_pair.c dist\lib\libtokenizers.a @GccSysLibs -o build\batch_and_pair.exe
+        & gcc -O3 -Wall -Wextra -std=c11 -Idist\include examples\streaming_decode.c dist\lib\libtokenizers.a @GccSysLibs -o build\streaming_decode.exe
     }
     & .\build\basic_usage.exe
     & .\build\batch_and_pair.exe

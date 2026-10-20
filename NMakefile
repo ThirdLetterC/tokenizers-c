@@ -35,6 +35,7 @@ $(DIST_LIB)\tokenizers.lib: Cargo.toml src\lib.rs include\tokenizers.h
 examples: all
 	$(CC) $(CFLAGS) examples\basic_usage.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\basic_usage.exe
 	$(CC) $(CFLAGS) examples\batch_and_pair.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\batch_and_pair.exe
+	$(CC) $(CFLAGS) examples\streaming_decode.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\streaming_decode.exe
 
 test: all
 	$(CC) $(CFLAGS) /WX tests\test_tokenizers.c $(DIST_LIB)\tokenizers.lib $(SYS_LIBS) /Fe:$(BUILD)\test_tokenizers.exe

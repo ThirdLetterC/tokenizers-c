@@ -77,6 +77,9 @@ if(TOKENIZERS_BUILD_EXAMPLES)
 
     add_executable(batch_and_pair examples/batch_and_pair.c)
     target_link_libraries(batch_and_pair PRIVATE tokenizers_static)
+
+    add_executable(streaming_decode examples/streaming_decode.c)
+    target_link_libraries(streaming_decode PRIVATE tokenizers_static)
 endif()
 
 if(TOKENIZERS_BUILD_TESTS)

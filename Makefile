@@ -85,7 +85,8 @@ header:
 examples: all | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -I$(INC_DIR) examples/basic_usage.c $(STATIC_LIB) $(SYS_LIBS) -o $(BUILD_DIR)/basic_usage$(EXE_EXT)
 	$(CC) $(CFLAGS) -I$(INC_DIR) examples/batch_and_pair.c $(STATIC_LIB) $(SYS_LIBS) -o $(BUILD_DIR)/batch_and_pair$(EXE_EXT)
-	@echo "==> Compiled examples: $(BUILD_DIR)/basic_usage$(EXE_EXT), $(BUILD_DIR)/batch_and_pair$(EXE_EXT)"
+	$(CC) $(CFLAGS) -I$(INC_DIR) examples/streaming_decode.c $(STATIC_LIB) $(SYS_LIBS) -o $(BUILD_DIR)/streaming_decode$(EXE_EXT)
+	@echo "==> Compiled examples: $(BUILD_DIR)/basic_usage$(EXE_EXT), $(BUILD_DIR)/batch_and_pair$(EXE_EXT), $(BUILD_DIR)/streaming_decode$(EXE_EXT)"
 
 test: all | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Werror -I$(INC_DIR) tests/test_tokenizers.c $(STATIC_LIB) $(SYS_LIBS) -o $(BUILD_DIR)/test_tokenizers$(EXE_EXT)

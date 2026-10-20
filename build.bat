@@ -154,9 +154,11 @@ if /I "%BUILD_TARGET%"=="msvc" (
 if /I "%BUILD_TARGET%"=="msvc" (
     cl /nologo /O2 /W4 /Idist\include examples\basic_usage.c dist\lib\tokenizers.lib ws2_32.lib userenv.lib advapi32.lib bcrypt.lib ntdll.lib crypt32.lib secur32.lib /Fe:build\basic_usage.exe || exit /b 1
     cl /nologo /O2 /W4 /Idist\include examples\batch_and_pair.c dist\lib\tokenizers.lib ws2_32.lib userenv.lib advapi32.lib bcrypt.lib ntdll.lib crypt32.lib secur32.lib /Fe:build\batch_and_pair.exe || exit /b 1
+    cl /nologo /O2 /W4 /Idist\include examples\streaming_decode.c dist\lib\tokenizers.lib ws2_32.lib userenv.lib advapi32.lib bcrypt.lib ntdll.lib crypt32.lib secur32.lib /Fe:build\streaming_decode.exe || exit /b 1
 ) else (
     gcc -O3 -Wall -Wextra -std=c11 -Idist\include examples\basic_usage.c dist\lib\libtokenizers.a -lws2_32 -luserenv -ladvapi32 -lbcrypt -lntdll -lcrypt32 -lsecur32 -lstdc++ -lm -lpthread -o build\basic_usage.exe || exit /b 1
     gcc -O3 -Wall -Wextra -std=c11 -Idist\include examples\batch_and_pair.c dist\lib\libtokenizers.a -lws2_32 -luserenv -ladvapi32 -lbcrypt -lntdll -lcrypt32 -lsecur32 -lstdc++ -lm -lpthread -o build\batch_and_pair.exe || exit /b 1
+    gcc -O3 -Wall -Wextra -std=c11 -Idist\include examples\streaming_decode.c dist\lib\libtokenizers.a -lws2_32 -luserenv -ladvapi32 -lbcrypt -lntdll -lcrypt32 -lsecur32 -lstdc++ -lm -lpthread -o build\streaming_decode.exe || exit /b 1
 )
-echo ==^> Built examples: build\basic_usage.exe, build\batch_and_pair.exe
+echo ==^> Built examples: build\basic_usage.exe, build\batch_and_pair.exe, build\streaming_decode.exe
 goto :eof

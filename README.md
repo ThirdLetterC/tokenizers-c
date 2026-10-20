@@ -40,6 +40,10 @@ build.bat test gnu
 build.bat examples msvc
 build\basic_usage.exe
 build\batch_and_pair.exe
+build\streaming_decode.exe
+
+:: Optional arguments: tokenizer JSON path, then text to encode
+build\streaming_decode.exe examples\sample_bert_tokenizer.json "Hello world, one token at a time!"
 ```
 
 ### Option B: Windows PowerShell (`build.ps1`)
@@ -88,6 +92,7 @@ make test
 make examples
 ./build/basic_usage
 ./build/batch_and_pair
+./build/streaming_decode
 ```
 
 ---
@@ -174,6 +179,7 @@ tokenizers-c/
 ├── examples/
 │   ├── basic_usage.c                  # Single-sequence encode/decode/streaming demo
 │   ├── batch_and_pair.c               # Batch padding, truncation, and pair encoding demo
+│   ├── streaming_decode.c              # Standalone token-by-token streaming decode demo
 │   ├── sample_bert_tokenizer.json     # Sample WordPiece tokenizer.json
 │   └── sample_bpe_tokenizer.json      # Sample BPE tokenizer.json
 └── tests/
