@@ -15,7 +15,7 @@ Building the project runs `cargo build --release` and populates `dist/`:
 
 - **Rust & Cargo** (`rustup` / `cargo` >= 1.75) to compile the upstream `tokenizers` crate.
 - **C Compiler** (`cl.exe` on Windows MSVC, `gcc` on MinGW-w64 / Linux, or `clang` on Windows / macOS / Linux) to compile and link your C application, examples, or unit tests.
-- Note on Windows Regex Engine: `Cargo.toml` enables `fancy-regex` and `http` by default (`default-features = false` on `tokenizers`), which compiles 100% in Rust on both `x86_64-pc-windows-msvc` and `x86_64-pc-windows-gnu` without `onig_sys` C-header conflicts. If you also need Oniguruma or `esaxx_fast`, pass `--features onig,esaxx_fast` to Cargo.
+- `fancy-regex` is enabled by default and compiles on Windows MSVC and MinGW without an external Oniguruma library. HTTP/Hugging Face Hub loading is disabled by default to keep the static library smaller. Enable it with `cargo build --release --features http` to use `tk_from_pretrained`; local tokenizer loading works without it. Optional Oniguruma and `esaxx_fast` support can be enabled with `--features onig,esaxx_fast`.
 
 ---
 
@@ -106,7 +106,7 @@ Copy `dist/include/tokenizers.h` and `dist/lib/libtokenizers.a` (or `dist/lib/to
 #include <stdio.h>
 
 int main(void) {
-    /* Load from local tokenizer.json or HuggingFace Hub (tk_from_pretrained("bert-base-uncased")) */
+    /* Load a local tokenizer.json. Build with --features http to use tk_from_pretrained(). */
     TkTokenizer *tk = tk_from_file("tokenizer.json");
     if (!tk) {
         fprintf(stderr, "Error: %s\n", tk_last_error_message());

@@ -15,7 +15,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [features]
 # `fancy-regex` is pure Rust and compiles cleanly on Windows (MSVC & MinGW),
 # Linux, and macOS without requiring a system Oniguruma C library.
-default = ["fancy-regex", "http"]
+default = ["fancy-regex"]
 fancy-regex = ["tokenizers/fancy-regex"]
 onig = ["tokenizers/onig"]
 esaxx_fast = ["tokenizers/esaxx_fast"]
