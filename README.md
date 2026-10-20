@@ -1,7 +1,5 @@
 # tokenizers-c
 
-Embeddable C FFI Wrapper for HuggingFace Tokenizers (Rust Core).
-
 `tokenizers-c` is a thin, panic-safe Rust FFI `staticlib` wrapper around the official [HuggingFace `tokenizers` Rust crate (`v0.23`)](https://github.com/huggingface/tokenizers) that compiles into an embeddable C header (`dist/include/tokenizers.h`) and static library archive (`dist/lib/libtokenizers.a` / `dist/lib/tokenizers.lib`) for **Windows**, **Linux**, and **macOS**.
 
 ## Build Outputs
