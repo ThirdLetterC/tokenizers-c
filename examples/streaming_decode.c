@@ -58,6 +58,14 @@ int main(int argc, char **argv) {
 
     size_t count = 0;
     const uint32_t *ids = tk_encoding_get_ids(encoding, &count);
+    if (count != 0 && !ids) {
+        fprintf(stderr, "Failed to read encoded token IDs: %s\n",
+                tk_last_error_message());
+        tk_encoding_free(encoding);
+        tk_free(tokenizer);
+        return EXIT_FAILURE;
+    }
+
     TkDecodeStream *stream = tk_decode_stream_new(true);
     if (!stream) {
         fprintf(stderr, "Failed to create decode stream: %s\n",
