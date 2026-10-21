@@ -194,14 +194,19 @@ static void test_bpe_merges_and_streaming(void) {
     tk_encoding_free(merged);
 
     /* Test stateful DecodeStream */
+    TkEncoding *stream_enc = tk_encode(tk, "HuggingFace hugging face", false);
+    ASSERT_TRUE(stream_enc != NULL);
+    size_t stream_len = 0;
+    const uint32_t *stream_ids = tk_encoding_get_ids(stream_enc, &stream_len);
+
     TkDecodeStream *stream = tk_decode_stream_new(true);
     ASSERT_TRUE(stream != NULL);
 
     char accum[128] = {0};
     size_t accum_len = 0;
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < stream_len; i++) {
         char *chunk = NULL;
-        ASSERT_EQ(tk_decode_stream_step(stream, tk, ids[i], &chunk), TK_OK);
+        ASSERT_EQ(tk_decode_stream_step(stream, tk, stream_ids[i], &chunk), TK_OK);
         if (chunk) {
             size_t chunk_len = strlen(chunk);
             ASSERT_TRUE(chunk_len < sizeof(accum) - accum_len);
@@ -213,6 +218,7 @@ static void test_bpe_merges_and_streaming(void) {
     ASSERT_STR_EQ(accum, "huggingface hugging face");
 
     tk_decode_stream_free(stream);
+    tk_encoding_free(stream_enc);
     tk_encoding_free(enc);
     tk_free(tk);
 }

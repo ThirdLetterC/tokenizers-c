@@ -87,6 +87,9 @@ if(TOKENIZERS_BUILD_TESTS)
     add_executable(test_tokenizers tests/test_tokenizers.c)
     target_link_libraries(test_tokenizers PRIVATE tokenizers_static)
     add_test(NAME test_tokenizers COMMAND test_tokenizers)
+    set_tests_properties(test_tokenizers PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
 endif()
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/tokenizers.h" DESTINATION include)
